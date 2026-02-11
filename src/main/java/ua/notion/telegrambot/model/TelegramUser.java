@@ -1,10 +1,25 @@
 package ua.notion.telegrambot.model;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "telegram_users")
 public class TelegramUser {
+
+    @Id
+    @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "first_name", length = 100)
     private String firstName;
+
+    @Column(name = "last_name", length = 100)
     private String lastName;
+
+    @Column(name = "username", length = 50, unique = true)
     private String username;
+
+    @Column(name = "language_code", length = 10)
     private String languageCode;
 
     public TelegramUser() {}
@@ -62,9 +77,7 @@ public class TelegramUser {
         return "TelegramUser{" +
                 "userId=" + userId +
                 ", firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
                 ", username='" + username + '\'' +
-                ", languageCode='" + languageCode + '\'' +
                 '}';
     }
 }

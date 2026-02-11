@@ -6,41 +6,32 @@ import org.slf4j.LoggerFactory;
 import io.github.natanimn.telebof.BotContext;
 import io.github.natanimn.telebof.annotations.CallbackHandler;
 import io.github.natanimn.telebof.types.updates.CallbackQuery;
+import ua.notion.telegrambot.service.BotService;
 
 public class TelegramCallbackHandler {
     private static final Logger logger = LoggerFactory.getLogger(TelegramCallbackHandler.class);
+    private final BotService botService;
+
+    public TelegramCallbackHandler(BotService botService) {
+        this.botService = botService;
+    }
 
     @CallbackHandler
     public void handleCallbackQuery(BotContext context, CallbackQuery callbackQuery) {
         String callbackData = callbackQuery.getData();
-        Long userId = callbackQuery.getFrom().getId();
+        Long chatId = callbackQuery.getMessage().getChat().getId();
+        logger.info("Received callback query: {} from user: {}", callbackData, callbackQuery.getFrom().getId());
 
-        logger.info("Received callback query with data: {} from user: {}", callbackData, userId);
+        // Получати із db url для карти поверху (потрібно із сесії брати поверх)
+        String imageUrl = "https://picsum.photos/536/354";
 
-        String responseText = "";
         switch (callbackData) {
-            case "help_cmd":
-                responseText = "Available commands:\n" +
-                        "/start - Start the bot\n" +
-                        "/help - Show this help message\n" +
-                        "/info - Get information about the bot";
-                break;
-            case "info_cmd":
-                responseText = "This is a sample Telegram bot built with Java, Maven, and Telebof library.";
-                break;
-            case "website_cmd":
-                responseText = "Visit our website: https://example.com";
-                break;
-            default:
-                responseText = "Unknown command. Use /help to see available commands.";
-                break;
+            case "floor_cmd" -> botService.sendMapMessage(context, chatId, imageUrl, "Test image");
+            case "help_cmd" -> botService.sendHelpMessage(context, chatId);
+            case "info_cmd" -> botService.sendInfoMessage(context, chatId);
+            default -> botService.sendUnknownCommand(context, chatId);
         }
 
-        context.answerCallbackQuery(callbackQuery.getId())
-                .text(responseText)
-                .showAlert(false)
-                .exec();
-
-        logger.info("Handled callback query: {} for user {}: {}", callbackData, userId, responseText);
+        context.answerCallbackQuery(callbackQuery.getId()).exec();
     }
 }
