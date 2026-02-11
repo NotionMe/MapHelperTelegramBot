@@ -1,14 +1,10 @@
 package ua.notion.telegrambot.model;
 
-/**
- * Represents a response message to be sent to Telegram
- */
 public class MessageResponse {
     private Long chatId;
     private String text;
     private boolean success;
 
-    // Constructors
     public MessageResponse() {}
 
     public MessageResponse(Long chatId, String text, boolean success) {
@@ -17,7 +13,6 @@ public class MessageResponse {
         this.success = success;
     }
 
-    // Getters and Setters
     public Long getChatId() {
         return chatId;
     }

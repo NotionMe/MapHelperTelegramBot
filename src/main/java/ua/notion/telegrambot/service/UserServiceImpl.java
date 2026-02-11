@@ -7,9 +7,6 @@ import ua.notion.telegrambot.model.MessageResponse;
 import ua.notion.telegrambot.model.TelegramUser;
 import ua.notion.telegrambot.repository.UserRepository;
 
-/**
- * Implementation of the business logic for the Telegram bot
- */
 public class UserServiceImpl implements UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
@@ -22,8 +19,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public MessageResponse processNewUser(TelegramUser user) {
         logger.info("Processing new user: {}", user.getUsername());
-
-        // Register the user in the system
         boolean registered = registerUser(user);
 
         String welcomeMessage;
@@ -40,41 +35,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public MessageResponse handleCommand(String command, Long userId) {
-        logger.info("Handling command: {} from user: {}", command, userId);
+    public MessageResponse getStartResponse(Long userId) {
+        logger.info("Getting start response for user: {}", userId);
 
-        String responseText;
-        switch (command.toLowerCase()) {
-            case "/start":
-                responseText = "Hello! Welcome to our Telegram bot. Use /help to see available commands.";
-                break;
-            case "/help":
-                responseText = "Available commands:\n" +
-                        "/start - Start the bot\n" +
-                        "/help - Show this help message\n" +
-                        "/info - Get information about the bot";
-                break;
-            case "/info":
-                responseText = "This is a sample Telegram bot built with Java, Maven, and Telebof library.";
-                break;
-            default:
-                responseText = "Unknown command. Use /help to see available commands.";
-                break;
-        }
+        String startMessage = "Hello! Welcome to our Telegram bot. Use /help to see available commands.";
 
-        return new MessageResponse(userId, responseText, true);
+        return new MessageResponse(userId, startMessage, true);
     }
 
     @Override
     public MessageResponse handleMessage(String message, Long userId) {
         logger.info("Handling message: {} from user: {}", message, userId);
 
-        // Check if the message is a command
-        if (message.startsWith("/")) {
-            return handleCommand(message, userId);
-        }
-
-        // For regular messages, provide a default response
         String responseText = "Thank you for your message: \"" + message + "\". " +
                 "For help, use /help command.";
 
@@ -90,13 +62,11 @@ public class UserServiceImpl implements UserService {
             return false;
         }
 
-        // Check if user already exists
         if (userRepository.existsById(user.getUserId())) {
             logger.debug("User already exists: {}", user.getUserId());
-            return true; // User already registered
+            return true;
         }
 
-        // Save the user
         boolean saved = userRepository.save(user);
         if (saved) {
             logger.info("Successfully registered user: {}", user.getUserId());

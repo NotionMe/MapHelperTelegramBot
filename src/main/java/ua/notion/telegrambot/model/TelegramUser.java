@@ -1,8 +1,5 @@
 package ua.notion.telegrambot.model;
 
-/**
- * Represents a Telegram user interacting with the bot
- */
 public class TelegramUser {
     private Long userId;
     private String firstName;
@@ -10,7 +7,6 @@ public class TelegramUser {
     private String username;
     private String languageCode;
 
-    // Constructors
     public TelegramUser() {}
 
     public TelegramUser(Long userId, String firstName, String lastName, String username, String languageCode) {
@@ -21,7 +17,6 @@ public class TelegramUser {
         this.languageCode = languageCode;
     }
 
-    // Getters and Setters
     public Long getUserId() {
         return userId;
     }

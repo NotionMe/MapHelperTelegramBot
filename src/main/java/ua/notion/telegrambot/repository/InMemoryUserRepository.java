@@ -5,10 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import ua.notion.telegrambot.model.TelegramUser;
 
-/**
- * In-memory implementation of UserRepository
- * In a real application, this would connect to a database
- */
 public class InMemoryUserRepository implements UserRepository {
     private final Map<Long, TelegramUser> users = new ConcurrentHashMap<>();
 
