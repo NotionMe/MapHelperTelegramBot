@@ -13,6 +13,7 @@ target/
 
 # IDE specific files
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
