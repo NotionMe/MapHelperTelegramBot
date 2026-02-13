@@ -10,5 +10,7 @@ public interface RouteRepository {
 
   List<Route> findAllByCabinetId(Integer cabinetId);
 
+  String findGifUrlByFloor(Integer floor);
+
   boolean save(Route route);
 }

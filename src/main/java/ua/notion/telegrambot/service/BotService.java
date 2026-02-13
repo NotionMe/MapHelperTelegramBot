@@ -7,8 +7,10 @@ import io.github.natanimn.telebof.types.keyboard.ReplyKeyboardMarkup;
 import ua.notion.telegrambot.constants.BotMessages;
 
 public class BotService {
+    private static final UserSessionService userSessionService = new UserSessionServiceImpl();
 
     public void sendStartMessage(BotContext context, Long chatId) {
+        userSessionService.getOrCreateSession(chatId);
         var keyboard = createMainInlineKeyboard();
         context.sendMessage(chatId, "Hello! Welcome to our Telegram bot. Use /help to see available commands.")
                 .replyMarkup(keyboard)

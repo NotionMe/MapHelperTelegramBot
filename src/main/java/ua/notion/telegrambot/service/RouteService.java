@@ -6,5 +6,8 @@ import java.util.List;
 public interface RouteService {
 
   Route getRoute(Integer landmarkId, Integer cabinetId);
+
   List<Route> getRoutesToCabinet(Integer cabinetId);
+
+  String getGifUrlByFloor(Integer floor);
 }

@@ -19,6 +19,8 @@ public class UserSessionServiceImpl implements UserSessionService {
       return existingSession.get();
     } else {
       UserSession newSession = new UserSession();
+      newSession.setCurrentFloor(1);
+      newSession.setCurrentLandmark("Entry");
       newSession.setUserId(userId);
       sessionRepository.saveOrUpdate(newSession);
       return newSession;

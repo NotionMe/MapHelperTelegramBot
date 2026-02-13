@@ -18,7 +18,7 @@ public class UserSession {
     private Integer currentFloor;
 
     @Column(name = "current_landmark")
-    private Integer currentLandmark;
+    private String currentLandmark;
 
     @Column(name = "last_activity")
     private LocalDateTime lastActivity = LocalDateTime.now();
@@ -49,11 +49,11 @@ public class UserSession {
         this.currentFloor = currentFloor;
     }
 
-    public Integer getCurrentLandmark() {
+    public String getCurrentLandmark() {
         return currentLandmark;
     }
 
-    public void setCurrentLandmark(Integer currentLandmark) {
+    public void setCurrentLandmark(String currentLandmark) {
         this.currentLandmark = currentLandmark;
     }
 

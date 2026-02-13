@@ -9,10 +9,17 @@ import ua.notion.telegrambot.config.AppConfig;
 import ua.notion.telegrambot.handler.CommandHandler;
 import ua.notion.telegrambot.handler.TelegramCallbackHandler;
 import ua.notion.telegrambot.handler.TelegramMessageHandler;
+import ua.notion.telegrambot.model.UserSession;
 import ua.notion.telegrambot.service.BotService;
+import ua.notion.telegrambot.service.RouteService;
+import ua.notion.telegrambot.service.RouteServiceImpl;
+import ua.notion.telegrambot.service.UserSessionService;
+import ua.notion.telegrambot.service.UserSessionServiceImpl;
 
 public class TelegramBotApplication {
     private static final Logger logger = LoggerFactory.getLogger(TelegramBotApplication.class);
+    private static final UserSessionService userSession = new UserSessionServiceImpl();
+    private static final RouteService routeService = new RouteServiceImpl();
 
     public static void main(String[] args) {
         String botToken = getBotToken();
@@ -25,7 +32,7 @@ public class TelegramBotApplication {
 
             bot.addHandler(new CommandHandler(botService));
             bot.addHandler(new TelegramMessageHandler(config.getBotController()));
-            bot.addHandler(new TelegramCallbackHandler(botService));
+            bot.addHandler(new TelegramCallbackHandler(botService, userSession, routeService));
 
             bot.startPolling();
             logger.info("Telegram Bot is running and listening for messages...");

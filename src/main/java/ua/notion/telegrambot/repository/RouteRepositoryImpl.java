@@ -53,9 +53,23 @@ public class RouteRepositoryImpl implements RouteRepository {
       transaction.commit();
       return true;
     } catch (Exception e) {
-      if (transaction != null) transaction.rollback();
+      if (transaction != null)
+        transaction.rollback();
       e.printStackTrace();
       return false;
     }
+  }
+
+  @Override
+  public String findGifUrlByFloor(Integer floor) {
+    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+      String hql = "SELECT r.gifUrl FROM Route r JOIN r.landmark l JOIN l.floor f WHERE f.number = :floorNumber";
+      return session.createQuery(hql, String.class)
+          .setParameter("floorNumber", floor)
+          .uniqueResult();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return null;
   }
 }

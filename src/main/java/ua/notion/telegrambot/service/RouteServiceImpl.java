@@ -25,4 +25,12 @@ public class RouteServiceImpl implements RouteService {
     }
     return routeRepository.findAllByCabinetId(cabinetId);
   }
+
+  @Override
+  public String getGifUrlByFloor(Integer floor) {
+    if (floor == null || floor < 1) {
+      return null;
+    }
+    return routeRepository.findGifUrlByFloor(floor);
+  }
 }
