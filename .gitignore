@@ -46,3 +46,6 @@ temp/
 ehthumbs.db
 Icon?
 Thumbs.db
+
+# db
+src/main/resources/META-INF/
