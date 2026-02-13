@@ -5,17 +5,18 @@ import ua.notion.telegrambot.repository.RouteRepository;
 import ua.notion.telegrambot.repository.RouteRepositoryImpl;
 
 import java.util.List;
+import java.util.Optional;
 
 public class RouteServiceImpl implements RouteService {
 
   private final RouteRepository routeRepository = new RouteRepositoryImpl();
 
   @Override
-  public Route getRoute(Integer landmarkId, Integer cabinetId) {
+  public Optional<Route> getRoute(Integer landmarkId, Integer cabinetId) {
     if (landmarkId == null || cabinetId == null) {
-      return null;
+      return Optional.empty();
     }
-    return routeRepository.findByLandmarkAndCabinet(landmarkId, cabinetId).orElse(null);
+    return routeRepository.findByLandmarkAndCabinet(landmarkId, cabinetId);
   }
 
   @Override
@@ -32,5 +33,12 @@ public class RouteServiceImpl implements RouteService {
       return null;
     }
     return routeRepository.findGifUrlByFloor(floor);
+  }
+
+  @Override
+  public void saveRoute(Route route) {
+    if (route != null) {
+      routeRepository.save(route);
+    }
   }
 }

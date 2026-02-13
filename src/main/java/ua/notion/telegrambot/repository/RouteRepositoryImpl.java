@@ -49,7 +49,7 @@ public class RouteRepositoryImpl implements RouteRepository {
     Transaction transaction = null;
     try (Session session = HibernateUtil.getSessionFactory().openSession()) {
       transaction = session.beginTransaction();
-      session.persist(route);
+      session.merge(route);
       transaction.commit();
       return true;
     } catch (Exception e) {
@@ -66,6 +66,7 @@ public class RouteRepositoryImpl implements RouteRepository {
       String hql = "SELECT r.gifUrl FROM Route r JOIN r.landmark l JOIN l.floor f WHERE f.number = :floorNumber";
       return session.createQuery(hql, String.class)
           .setParameter("floorNumber", floor)
+          .setMaxResults(1)
           .uniqueResult();
     } catch (Exception e) {
       e.printStackTrace();

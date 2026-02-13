@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "routes", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"cabinet_id", "landmark_id"})
+        @UniqueConstraint(columnNames = { "cabinet_id", "landmark_id" })
 })
 public class Route {
 
@@ -29,10 +29,11 @@ public class Route {
     @Column(name = "gif_url", length = 500)
     private String gifUrl;
 
-    @Column(name = "gif_telegram_file_id", length = 200)
-    private String gifTelegramFileId;
+    @Column(name = "gif_telegram_id", length = 200)
+    private String gifTelegramId;
 
-    public Route() {}
+    public Route() {
+    }
 
     public Integer getId() {
         return id;
@@ -82,12 +83,12 @@ public class Route {
         this.gifUrl = gifUrl;
     }
 
-    public String getGifTelegramFileId() {
-        return gifTelegramFileId;
+    public String getGifTelegramId() {
+        return gifTelegramId;
     }
 
-    public void setGifTelegramFileId(String gifTelegramFileId) {
-        this.gifTelegramFileId = gifTelegramFileId;
+    public void setGifTelegramId(String gifTelegramId) {
+        this.gifTelegramId = gifTelegramId;
     }
 
     @Override

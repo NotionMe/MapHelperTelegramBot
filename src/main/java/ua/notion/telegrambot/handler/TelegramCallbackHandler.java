@@ -53,6 +53,10 @@ public class TelegramCallbackHandler {
             default -> {
                 if (callbackData.startsWith("cabinet_")) {
                     handleCabinetCallback(context, callbackQuery, callbackData, chatId);
+                } else if (callbackData.startsWith("start_floor_")) {
+                    handleStartFloorCallback(context, callbackQuery, callbackData, chatId);
+                } else if (callbackData.startsWith("landmark_")) {
+                    handleLandmarkCallback(context, callbackQuery, callbackData, chatId);
                 } else {
                     botService.sendUnknownCommand(context, chatId);
                 }
@@ -62,7 +66,6 @@ public class TelegramCallbackHandler {
         context.answerCallbackQuery(callbackQuery.getId()).exec();
     }
 
-    // Відповідь на номер кабінету який користувач вибрав( не вписав )
     private void handleCabinetCallback(BotContext context, CallbackQuery callbackQuery, String callbackData,
             Long chatId) {
         try {
@@ -75,17 +78,14 @@ public class TelegramCallbackHandler {
                 return;
             }
 
-            // замість цьої хрені давати користувачу запитання де він знаходиться (або
-            // лишити якщо нравиться на твою думку) але краще якщо зберігаєш то перероби
-            // логічно
             StringBuilder response = new StringBuilder();
             response.append("🏢 <b>").append(cabinet.getName()).append("</b>\n");
-            response.append("📍 Номер: ").append(cabinet.getNumber()).append("\n");
-            response.append("📊 Поверх: ").append(cabinet.getFloor().getNumber()).append("\n\n");
+            response.append("📍 Number: ").append(cabinet.getNumber()).append("\n");
+            response.append("📊 Floor: ").append(cabinet.getFloor().getNumber()).append("\n\n");
             response.append("ℹ️ ").append(cabinet.getDescription()).append("\n\n");
 
             if (cabinet.getFeatures() != null && !cabinet.getFeatures().isEmpty()) {
-                response.append("✨ Особливості:\n");
+                response.append("✨ Features:\n");
                 for (String feature : cabinet.getFeatures()) {
                     response.append("  • ").append(feature).append("\n");
                 }
@@ -95,17 +95,58 @@ public class TelegramCallbackHandler {
                     .parseMode(ParseMode.HTML)
                     .exec();
 
-            // TODO: Тут додати кнопки для побудови маршруту
-            // Наприклад: "Побудувати маршрут", "Назад до списку"
-
             UserSession session = userSession.getOrCreateSession(chatId);
             session.setCurrentCabinet(cabinet.getNumber());
-            session.setCurrentFloor(cabinet.getFloor().getNumber());
             userSession.updateSession(session);
+
+            botService.sendStartFloorSelection(context, chatId);
 
         } catch (NumberFormatException e) {
             logger.error("Invalid cabinet ID in callback: {}", callbackData);
             context.sendMessage(chatId, "Error: Invalid cabinet ID.").exec();
+        }
+    }
+
+    private void handleStartFloorCallback(BotContext context, CallbackQuery callbackQuery, String callbackData,
+            Long chatId) {
+        try {
+            int floorId = Integer.parseInt(callbackData.replace("start_floor_", ""));
+
+            UserSession session = userSession.getOrCreateSession(chatId);
+            session.setCurrentFloor(floorId);
+            userSession.updateSession(session);
+
+            botService.sendLandmarkSelection(context, chatId, floorId);
+
+        } catch (NumberFormatException e) {
+            logger.error("Invalid floor ID in callback: {}", callbackData);
+            context.sendMessage(chatId, "Error: Invalid floor ID.").exec();
+        }
+    }
+
+    private void handleLandmarkCallback(BotContext context, CallbackQuery callbackQuery, String callbackData,
+            Long chatId) {
+        try {
+            int landmarkId = Integer.parseInt(callbackData.replace("landmark_", ""));
+            UserSession session = userSession.getOrCreateSession(chatId);
+
+            String cabinetNumber = session.getCurrentCabinet();
+            if (cabinetNumber == null) {
+                context.sendMessage(chatId, "Please select a cabinet first.").exec();
+                return;
+            }
+
+            Cabinet cabinet = cabinetService.getByNumber(cabinetNumber);
+            if (cabinet == null) {
+                context.sendMessage(chatId, "Cabinet not found.").exec();
+                return;
+            }
+
+            botService.sendRoute(context, chatId, landmarkId, cabinet.getId());
+
+        } catch (NumberFormatException e) {
+            logger.error("Invalid landmark ID: {}", callbackData);
+            context.sendMessage(chatId, "Error: Invalid landmark.").exec();
         }
     }
 }
