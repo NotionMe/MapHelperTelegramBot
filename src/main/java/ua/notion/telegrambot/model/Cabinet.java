@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "cabinets")
@@ -26,9 +28,8 @@ public class Cabinet {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @ElementCollection
-    @CollectionTable(name = "cabinet_features", joinColumns = @JoinColumn(name = "cabinet_id"))
-    @Column(name = "feature")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "features", columnDefinition = "text[]")
     private List<String> features = new ArrayList<>();
 
     @Column(name = "created_at")
