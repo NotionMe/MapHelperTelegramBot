@@ -20,6 +20,9 @@ public class UserSession {
     @Column(name = "current_landmark")
     private String currentLandmark;
 
+    @Column(name = "current_cabinet")
+    private String currentCabinet;
+
     @Column(name = "last_activity")
     private LocalDateTime lastActivity = LocalDateTime.now();
 
@@ -55,6 +58,14 @@ public class UserSession {
 
     public void setCurrentLandmark(String currentLandmark) {
         this.currentLandmark = currentLandmark;
+    }
+
+    public String getCurrentCabinet() {
+        return currentCabinet;
+    }
+
+    public void setCurrentCabinet(String currentCabinet) {
+        this.currentCabinet = currentCabinet;
     }
 
     public LocalDateTime getLastActivity() {

@@ -25,11 +25,6 @@ public class Landmark {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @ElementCollection
-    @CollectionTable(name = "landmark_nearby_cabinets", joinColumns = @JoinColumn(name = "landmark_id"))
-    @Column(name = "cabinet_id")
-    private List<Integer> nearbyCabinets = new ArrayList<>();
-
     @OneToMany(mappedBy = "landmark", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Route> routes = new ArrayList<>();
 
@@ -73,14 +68,6 @@ public class Landmark {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public List<Integer> getNearbyCabinets() {
-        return nearbyCabinets;
-    }
-
-    public void setNearbyCabinets(List<Integer> nearbyCabinets) {
-        this.nearbyCabinets = nearbyCabinets;
     }
 
     public List<Route> getRoutes() {
