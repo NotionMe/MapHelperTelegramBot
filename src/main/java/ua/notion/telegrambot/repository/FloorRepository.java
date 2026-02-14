@@ -5,4 +5,6 @@ import ua.notion.telegrambot.model.Floor;
 
 public interface FloorRepository {
   Optional<Floor> findByNumber(int number);
+
+  Optional<String> findMapImageUrlByNumber(int number);
 }

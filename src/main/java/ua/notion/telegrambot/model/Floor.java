@@ -1,11 +1,14 @@
 package ua.notion.telegrambot.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "floors")
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Floor {
 
     @Id
@@ -23,6 +26,9 @@ public class Floor {
 
     @Column(name = "cabinet_count")
     private Integer cabinetCount = 0;
+
+    @Column(name = "map_image_url", length = 500)
+    private String mapImageUrl;
 
     @OneToMany(mappedBy = "floor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Cabinet> cabinets = new ArrayList<>();
@@ -71,6 +77,14 @@ public class Floor {
 
     public void setCabinetCount(Integer cabinetCount) {
         this.cabinetCount = cabinetCount;
+    }
+
+    public String getMapImageUrl() {
+        return mapImageUrl;
+    }
+
+    public void setMapImageUrl(String mapImageUrl) {
+        this.mapImageUrl = mapImageUrl;
     }
 
     public List<Cabinet> getCabinets() {

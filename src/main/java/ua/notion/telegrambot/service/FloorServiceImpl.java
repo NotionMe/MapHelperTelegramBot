@@ -12,4 +12,9 @@ public class FloorServiceImpl implements FloorService {
   public Floor getFloorByNumber(int number) {
     return floorRepository.findByNumber(number).orElse(null);
   }
+
+  @Override
+  public String getMapImageUrlByFloorNumber(int number) {
+    return floorRepository.findMapImageUrlByNumber(number).orElse(null);
+  }
 }

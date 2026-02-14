@@ -1,5 +1,10 @@
 package ua.notion.telegrambot.service;
 
+import java.util.concurrent.CompletableFuture;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.github.natanimn.telebof.BotContext;
 import io.github.natanimn.telebof.enums.ParseMode;
 import io.github.natanimn.telebof.types.keyboard.InlineKeyboardButton;
@@ -8,18 +13,21 @@ import io.github.natanimn.telebof.types.keyboard.ReplyKeyboardMarkup;
 import ua.notion.telegrambot.constants.BotMessages;
 import ua.notion.telegrambot.repository.LandmarkRepository;
 import ua.notion.telegrambot.repository.LandmarkRepositoryImpl;
-import ua.notion.telegrambot.repository.LandmarkRepository;
-import ua.notion.telegrambot.repository.LandmarkRepositoryImpl;
-import ua.notion.telegrambot.service.RouteService;
-import ua.notion.telegrambot.service.RouteServiceImpl;
-import ua.notion.telegrambot.service.UserSessionService;
-import ua.notion.telegrambot.service.UserSessionServiceImpl;
 
 public class BotService {
     private static final UserSessionService userSessionService = new UserSessionServiceImpl();
+    private static final Logger logger = LoggerFactory.getLogger(BotService.class);
 
     public void sendStartMessage(BotContext context, Long chatId) {
-        userSessionService.getOrCreateSession(chatId);
+        CompletableFuture.supplyAsync(() -> {
+            return userSessionService.getOrCreateSession(chatId);
+        }).thenAccept(userSession -> {
+            logger.info("Session update {}", userSession);
+        }).exceptionally(ex -> {
+            ex.printStackTrace();
+            return null;
+        });
+
         var keyboard = createMainInlineKeyboard();
         context.sendMessage(chatId, "Hello! Welcome to our Telegram bot. Use /help to see available commands.")
                 .replyMarkup(keyboard)
@@ -84,66 +92,78 @@ public class BotService {
     private final RouteService routeService = new RouteServiceImpl();
 
     public void sendLandmarkSelection(BotContext context, Long chatId, Integer floorId) {
-        var landmarks = landmarkRepository.findAllByFloorId(floorId);
-        if (landmarks.isEmpty()) {
-            context.sendMessage(chatId, "No landmarks found for this floor.").exec();
-            return;
-        }
+        CompletableFuture.supplyAsync(() -> landmarkRepository.findAllByFloorId(floorId))
+                .thenAccept(landmarks -> {
+                    if (landmarks.isEmpty()) {
+                        context.sendMessage(chatId, "No landmarks found for this floor.").exec();
+                        return;
+                    }
 
-        var keyboard = new InlineKeyboardMarkup();
-        for (var landmark : landmarks) {
-            keyboard.addKeyboard(new InlineKeyboardButton(landmark.getName(), "landmark_" + landmark.getId()));
-        }
+                    var keyboard = new InlineKeyboardMarkup();
+                    for (var landmark : landmarks) {
+                        keyboard.addKeyboard(new InlineKeyboardButton(landmark.getName(), "landmark_" + landmark.getId()));
+                    }
 
-        context.sendMessage(chatId, "📍 Where are you now? Choose the nearest landmark:")
-                .replyMarkup(keyboard)
-                .exec();
+                    context.sendMessage(chatId, "📍 Where are you now? Choose the nearest landmark:")
+                            .replyMarkup(keyboard)
+                            .exec();
+                }).exceptionally(ex -> {
+                    logger.error("Error loading landmarks: ", ex);
+                    context.sendMessage(chatId, "Error loading landmarks. Please try again.").exec();
+                    return null;
+                });
     }
 
     public void sendRoute(BotContext context, Long chatId, Integer landmarkId, Integer cabinetId) {
-        var routeOptional = routeService.getRoute(landmarkId, cabinetId);
+        CompletableFuture.supplyAsync(() -> routeService.getRoute(landmarkId, cabinetId))
+                .thenAccept(routeOptional -> {
+                    if (routeOptional.isEmpty()) {
+                        context.sendMessage(chatId, "🚫 Route not found. Try another landmark.").exec();
+                        return;
+                    }
 
-        if (routeOptional.isEmpty()) {
-            context.sendMessage(chatId, "🚫 Route not found. Try another landmark.").exec();
-            return;
-        }
+                    var route = routeOptional.get();
+                    String caption = route.getDirection() != null
+                            ? "🛣 <b>Route:</b> " + route.getDirection() + "\n📏 <b>Distance:</b> " + route.getDistance() + "m"
+                            : "Here is your route!";
 
-        var route = routeOptional.get();
-        String caption = route.getDirection() != null
-                ? "🛣 <b>Route:</b> " + route.getDirection() + "\n📏 <b>Distance:</b> " + route.getDistance() + "m"
-                : "Here is your route!";
+                    if (route.getGifTelegramId() != null) {
+                        try {
+                            context.sendPhoto(chatId, route.getGifTelegramId())
+                                    .caption(caption)
+                                    .parseMode(ParseMode.HTML)
+                                    .exec();
+                            return;
+                        } catch (Exception e) {
+                            logger.warn("Invalid file_id, falling back to URL: {}", e.getMessage());
+                            route.setGifTelegramId(null);
+                            routeService.saveRoute(route);
+                        }
+                    }
 
-        if (route.getGifTelegramId() != null) {
-            try {
-                context.sendPhoto(chatId, route.getGifTelegramId())
-                        .caption(caption)
-                        .parseMode(ParseMode.HTML)
-                        .exec();
-                return;
-            } catch (Exception e) {
-                System.err.println("Invalid file_id, falling back to URL: " + e.getMessage());
-                route.setGifTelegramId(null);
-                routeService.saveRoute(route);
-            }
-        }
+                    if (route.getGifUrl() != null) {
+                        try {
+                            var sentMessage = context.sendPhoto(chatId, route.getGifUrl())
+                                    .caption(caption)
+                                    .parseMode(ParseMode.HTML)
+                                    .exec();
 
-        if (route.getGifUrl() != null) {
-            try {
-                var sentMessage = context.sendPhoto(chatId, route.getGifUrl())
-                        .caption(caption)
-                        .parseMode(ParseMode.HTML)
-                        .exec();
-
-                if (sentMessage.getPhoto() != null && !sentMessage.getPhoto().isEmpty()) {
-                    String fileId = sentMessage.getPhoto().get(sentMessage.getPhoto().size() - 1).getFileId();
-                    route.setGifTelegramId(fileId);
-                    routeService.saveRoute(route);
-                }
-            } catch (Exception e) {
-                context.sendMessage(chatId, "Error sending route image: " + e.getMessage()).exec();
-            }
-        } else {
-            context.sendMessage(chatId, caption).parseMode(ParseMode.HTML).exec();
-        }
+                            if (sentMessage.getPhoto() != null && !sentMessage.getPhoto().isEmpty()) {
+                                String fileId = sentMessage.getPhoto().get(sentMessage.getPhoto().size() - 1).getFileId();
+                                route.setGifTelegramId(fileId);
+                                routeService.saveRoute(route);
+                            }
+                        } catch (Exception e) {
+                            logger.error("Error sending route image: ", e);
+                            context.sendMessage(chatId, "Error sending route image: " + e.getMessage()).exec();
+                        }
+                    } else {
+                        context.sendMessage(chatId, caption).parseMode(ParseMode.HTML).exec();
+                    }
+                }).exceptionally(ex -> {
+                    logger.error("Error loading route: ", ex);
+                    context.sendMessage(chatId, "Error loading route. Please try again.").exec();
+                    return null;
+                });
     }
 }

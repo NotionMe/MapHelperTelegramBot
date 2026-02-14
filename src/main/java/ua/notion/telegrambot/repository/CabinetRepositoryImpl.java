@@ -4,7 +4,6 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import ua.notion.telegrambot.model.Cabinet;
-import ua.notion.telegrambot.repository.CabinetRepository;
 import ua.notion.telegrambot.util.HibernateUtil;
 
 import java.util.List;
@@ -32,6 +31,7 @@ public class CabinetRepositoryImpl implements CabinetRepository {
       String hql = "FROM Cabinet c JOIN FETCH c.floor WHERE c.id = :id";
       Query<Cabinet> query = session.createQuery(hql, Cabinet.class);
       query.setParameter("id", id);
+      query.setCacheable(true);
 
       return query.uniqueResult();
     } catch (Exception e) {
@@ -46,6 +46,7 @@ public class CabinetRepositoryImpl implements CabinetRepository {
       String hql = "FROM Cabinet c JOIN FETCH c.floor f WHERE f.number = :floorNum ORDER BY c.number ASC";
       Query<Cabinet> query = session.createQuery(hql, Cabinet.class);
       query.setParameter("floorNum", floorNumber);
+      query.setCacheable(true);
 
       return query.list();
     } catch (Exception e) {
@@ -60,6 +61,7 @@ public class CabinetRepositoryImpl implements CabinetRepository {
       String hql = "FROM Cabinet c JOIN FETCH c.floor WHERE c.number = :number";
       Query<Cabinet> query = session.createQuery(hql, Cabinet.class);
       query.setParameter("number", number);
+      query.setCacheable(true);
 
       return query.uniqueResult();
     } catch (Exception e) {

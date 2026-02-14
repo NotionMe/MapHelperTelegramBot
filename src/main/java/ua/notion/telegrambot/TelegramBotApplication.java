@@ -1,5 +1,7 @@
 package ua.notion.telegrambot;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,12 +11,12 @@ import ua.notion.telegrambot.config.AppConfig;
 import ua.notion.telegrambot.handler.CommandHandler;
 import ua.notion.telegrambot.handler.TelegramCallbackHandler;
 import ua.notion.telegrambot.handler.TelegramMessageHandler;
-import ua.notion.telegrambot.model.UserSession;
 import ua.notion.telegrambot.service.BotService;
 import ua.notion.telegrambot.service.RouteService;
 import ua.notion.telegrambot.service.RouteServiceImpl;
 import ua.notion.telegrambot.service.UserSessionService;
 import ua.notion.telegrambot.service.UserSessionServiceImpl;
+import ua.notion.telegrambot.util.HibernateUtil;
 
 public class TelegramBotApplication {
     private static final Logger logger = LoggerFactory.getLogger(TelegramBotApplication.class);
@@ -22,6 +24,12 @@ public class TelegramBotApplication {
     private static final RouteService routeService = new RouteServiceImpl();
 
     public static void main(String[] args) {
+
+        long startTime = System.currentTimeMillis();
+        HibernateUtil.getSessionFactory();
+        long infoTime = System.currentTimeMillis() - startTime;
+        logger.info("Hibernate SessionFactory initialized in {} ms", infoTime);
+
         String botToken = getBotToken();
         logger.info("Starting Telegram Bot...");
 

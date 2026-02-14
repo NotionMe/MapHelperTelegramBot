@@ -15,6 +15,23 @@ public class FloorRepositoryImpl implements FloorRepository {
 
       Query<Floor> query = session.createQuery(hql, Floor.class);
       query.setParameter("number", number);
+      query.setCacheable(true);
+
+      return query.uniqueResultOptional();
+    } catch (Exception e) {
+      e.printStackTrace();
+      return Optional.empty();
+    }
+  }
+
+  @Override
+  public Optional<String> findMapImageUrlByNumber(int number) {
+    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+      String hql = "SELECT f.mapImageUrl FROM Floor f WHERE f.number = :number";
+
+      Query<String> query = session.createQuery(hql, String.class);
+      query.setParameter("number", number);
+      query.setCacheable(true);
 
       return query.uniqueResultOptional();
     } catch (Exception e) {
