@@ -115,7 +115,7 @@ public class BotService {
         CompletableFuture.supplyAsync(() -> landmarkRepository.findAllByFloorId(floorId))
                 .thenAccept(landmarks -> {
                     List<Landmark> startLocations = landmarks.stream()
-                            .filter(l -> START_LOCATION_CODES.contains(l.getCode()))
+                            .filter(l -> START_LOCATION_CODES.contains(l.getCode().trim()))
                             .toList();
 
                     if (startLocations.isEmpty()) {
@@ -199,7 +199,7 @@ public class BotService {
         CompletableFuture.supplyAsync(() -> landmarkRepository.findAllByFloorId(floorId))
                 .thenAccept(landmarks -> {
                     List<Landmark> cabinets = landmarks.stream()
-                            .filter(l -> CABINET_CODES.contains(l.getCode()))
+                            .filter(l -> CABINET_CODES.contains(l.getCode().trim()))
                             .toList();
 
                     if (cabinets.isEmpty()) {
@@ -229,7 +229,7 @@ public class BotService {
         CompletableFuture.supplyAsync(() -> landmarkRepository.findAllByFloorId(floorId))
                 .thenAccept(landmarks -> {
                     List<Landmark> startLocations = landmarks.stream()
-                            .filter(l -> START_LOCATION_CODES.contains(l.getCode()))
+                            .filter(l -> START_LOCATION_CODES.contains(l.getCode().trim()))
                             .toList();
 
                     if (startLocations.isEmpty()) {
