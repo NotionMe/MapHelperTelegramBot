@@ -39,7 +39,7 @@ public class TelegramBotApplication {
             BotService botService = new BotService();
 
             bot.addHandler(new CommandHandler(botService));
-            bot.addHandler(new TelegramMessageHandler(config.getBotController()));
+            bot.addHandler(new TelegramMessageHandler(config.getBotController(), botService));
             bot.addHandler(new TelegramCallbackHandler(botService, userSession, routeService));
 
             bot.startPolling();

@@ -1,5 +1,7 @@
 package ua.notion.telegrambot.service;
 
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
@@ -11,12 +13,30 @@ import io.github.natanimn.telebof.types.keyboard.InlineKeyboardButton;
 import io.github.natanimn.telebof.types.keyboard.InlineKeyboardMarkup;
 import io.github.natanimn.telebof.types.keyboard.ReplyKeyboardMarkup;
 import ua.notion.telegrambot.constants.BotMessages;
+import ua.notion.telegrambot.model.Landmark;
 import ua.notion.telegrambot.repository.LandmarkRepository;
 import ua.notion.telegrambot.repository.LandmarkRepositoryImpl;
 
 public class BotService {
     private static final UserSessionService userSessionService = new UserSessionServiceImpl();
     private static final Logger logger = LoggerFactory.getLogger(BotService.class);
+
+    private static final Set<String> START_LOCATION_CODES = Set.of(
+            "F1_ENTRANCE_MAIN",
+            "F1_STAIRS_RIGHT",
+            "F1_STAIRS_LEFT",
+            "F1_WC_AREA",
+            "F1_CABINET_CENTER",
+            "F1_CORNER_NW",
+            "F1_CORNER_SE");
+
+    private static final Set<String> CABINET_CODES = Set.of(
+            "F1_CABINET_101",
+            "F1_CABINET_102",
+            "F1_CABINET_103",
+            "F1_CABINET_104",
+            "F1_CABINET_105",
+            "F1_TOILET");
 
     public void sendStartMessage(BotContext context, Long chatId) {
         CompletableFuture.supplyAsync(() -> {
@@ -94,15 +114,21 @@ public class BotService {
     public void sendLandmarkSelection(BotContext context, Long chatId, Integer floorId) {
         CompletableFuture.supplyAsync(() -> landmarkRepository.findAllByFloorId(floorId))
                 .thenAccept(landmarks -> {
-                    if (landmarks.isEmpty()) {
+                    List<Landmark> startLocations = landmarks.stream()
+                            .filter(l -> START_LOCATION_CODES.contains(l.getCode()))
+                            .toList();
+
+                    if (startLocations.isEmpty()) {
                         context.sendMessage(chatId, "No landmarks found for this floor.").exec();
                         return;
                     }
 
                     var keyboard = new InlineKeyboardMarkup();
-                    for (var landmark : landmarks) {
-                        keyboard.addKeyboard(new InlineKeyboardButton(landmark.getName(), "landmark_" + landmark.getId()));
+                    for (var landmark : startLocations) {
+                        keyboard.addKeyboard(
+                                new InlineKeyboardButton(landmark.getName(), "landmark_" + landmark.getId()));
                     }
+                    keyboard.addKeyboard(new InlineKeyboardButton("🚪 Cabinets", "cabinets_list"));
 
                     context.sendMessage(chatId, "📍 Where are you now? Choose the nearest landmark:")
                             .replyMarkup(keyboard)
@@ -124,7 +150,8 @@ public class BotService {
 
                     var route = routeOptional.get();
                     String caption = route.getDirection() != null
-                            ? "🛣 <b>Route:</b> " + route.getDirection() + "\n📏 <b>Distance:</b> " + route.getDistance() + "m"
+                            ? "🛣 <b>Route:</b> " + route.getDirection() + "\n📏 <b>Distance:</b> "
+                                    + route.getDistance() + "m"
                             : "Here is your route!";
 
                     if (route.getGifTelegramId() != null) {
@@ -149,7 +176,8 @@ public class BotService {
                                     .exec();
 
                             if (sentMessage.getPhoto() != null && !sentMessage.getPhoto().isEmpty()) {
-                                String fileId = sentMessage.getPhoto().get(sentMessage.getPhoto().size() - 1).getFileId();
+                                String fileId = sentMessage.getPhoto().get(sentMessage.getPhoto().size() - 1)
+                                        .getFileId();
                                 route.setGifTelegramId(fileId);
                                 routeService.saveRoute(route);
                             }
@@ -163,6 +191,65 @@ public class BotService {
                 }).exceptionally(ex -> {
                     logger.error("Error loading route: ", ex);
                     context.sendMessage(chatId, "Error loading route. Please try again.").exec();
+                    return null;
+                });
+    }
+
+    public void showCabinetsList(BotContext context, Long chatId, Integer messageId, Integer floorId) {
+        CompletableFuture.supplyAsync(() -> landmarkRepository.findAllByFloorId(floorId))
+                .thenAccept(landmarks -> {
+                    List<Landmark> cabinets = landmarks.stream()
+                            .filter(l -> CABINET_CODES.contains(l.getCode()))
+                            .toList();
+
+                    if (cabinets.isEmpty()) {
+                        context.sendMessage(chatId, "No cabinets found for this floor.").exec();
+                        return;
+                    }
+
+                    var keyboard = new InlineKeyboardMarkup();
+                    for (var cabinet : cabinets) {
+                        keyboard.addKeyboard(
+                                new InlineKeyboardButton(cabinet.getName(), "landmark_" + cabinet.getId()));
+                    }
+                    keyboard.addKeyboard(
+                            new InlineKeyboardButton("⬅️ Back to locations", "back_to_locations_" + floorId));
+
+                    context.editMessageReplyMarkup(chatId, messageId)
+                            .replyMarkup(keyboard)
+                            .exec();
+                }).exceptionally(ex -> {
+                    logger.error("Error loading cabinets: ", ex);
+                    context.sendMessage(chatId, "Error loading cabinets. Please try again.").exec();
+                    return null;
+                });
+    }
+
+    public void showLocationsList(BotContext context, Long chatId, Integer messageId, Integer floorId) {
+        CompletableFuture.supplyAsync(() -> landmarkRepository.findAllByFloorId(floorId))
+                .thenAccept(landmarks -> {
+                    List<Landmark> startLocations = landmarks.stream()
+                            .filter(l -> START_LOCATION_CODES.contains(l.getCode()))
+                            .toList();
+
+                    if (startLocations.isEmpty()) {
+                        context.sendMessage(chatId, "No landmarks found for this floor.").exec();
+                        return;
+                    }
+
+                    var keyboard = new InlineKeyboardMarkup();
+                    for (var landmark : startLocations) {
+                        keyboard.addKeyboard(
+                                new InlineKeyboardButton(landmark.getName(), "landmark_" + landmark.getId()));
+                    }
+                    keyboard.addKeyboard(new InlineKeyboardButton("🚪 Cabinets", "cabinets_list"));
+
+                    context.editMessageReplyMarkup(chatId, messageId)
+                            .replyMarkup(keyboard)
+                            .exec();
+                }).exceptionally(ex -> {
+                    logger.error("Error loading locations: ", ex);
+                    context.sendMessage(chatId, "Error loading locations. Please try again.").exec();
                     return null;
                 });
     }

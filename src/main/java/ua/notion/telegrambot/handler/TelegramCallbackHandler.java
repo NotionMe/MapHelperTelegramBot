@@ -9,7 +9,6 @@ import io.github.natanimn.telebof.BotContext;
 import io.github.natanimn.telebof.annotations.CallbackHandler;
 import io.github.natanimn.telebof.enums.ParseMode;
 import io.github.natanimn.telebof.types.updates.CallbackQuery;
-import ua.notion.telegrambot.model.Cabinet;
 import ua.notion.telegrambot.model.Floor;
 import ua.notion.telegrambot.model.UserSession;
 import ua.notion.telegrambot.service.BotService;
@@ -65,8 +64,11 @@ public class TelegramCallbackHandler {
             }
             case "help_cmd" -> botService.sendHelpMessage(context, chatId);
             case "info_cmd" -> botService.sendInfoMessage(context, chatId);
+            case "cabinets_list" -> handleCabinetsListCallback(context, callbackQuery, chatId);
             default -> {
-                if (callbackData.startsWith("cabinet_")) {
+                if (callbackData.startsWith("back_to_locations_")) {
+                    handleBackToLocationsCallback(context, callbackQuery, callbackData, chatId);
+                } else if (callbackData.startsWith("cabinet_")) {
                     handleCabinetCallback(context, callbackQuery, callbackData, chatId);
                 } else if (callbackData.startsWith("start_floor_")) {
                     handleStartFloorCallback(context, callbackQuery, callbackData, chatId);
@@ -168,6 +170,32 @@ public class TelegramCallbackHandler {
         } catch (NumberFormatException e) {
             logger.error("Invalid landmark ID: {}", callbackData);
             context.sendMessage(chatId, "Error: Invalid landmark.").exec();
+        }
+    }
+
+    private void handleCabinetsListCallback(BotContext context, CallbackQuery callbackQuery, Long chatId) {
+        Integer messageId = callbackQuery.getMessage().getMessageId();
+        UserSession session = userSession.getOrCreateSession(chatId);
+        Integer floorId = session.getCurrentFloor();
+
+        if (floorId == null) {
+            context.sendMessage(chatId, "Please select a floor first.").exec();
+            return;
+        }
+
+        botService.showCabinetsList(context, chatId, messageId, floorId);
+    }
+
+    private void handleBackToLocationsCallback(BotContext context, CallbackQuery callbackQuery, String callbackData,
+            Long chatId) {
+        Integer messageId = callbackQuery.getMessage().getMessageId();
+
+        try {
+            int floorId = Integer.parseInt(callbackData.replace("back_to_locations_", ""));
+            botService.showLocationsList(context, chatId, messageId, floorId);
+        } catch (NumberFormatException e) {
+            logger.error("Invalid floor ID in back_to_locations callback: {}", callbackData);
+            context.sendMessage(chatId, "Error: Invalid floor ID.").exec();
         }
     }
 }

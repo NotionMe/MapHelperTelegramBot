@@ -16,6 +16,7 @@ import ua.notion.telegrambot.controller.BotController;
 import ua.notion.telegrambot.model.Cabinet;
 import ua.notion.telegrambot.model.Floor;
 import ua.notion.telegrambot.model.UserSession;
+import ua.notion.telegrambot.service.BotService;
 import ua.notion.telegrambot.service.CabinetService;
 import ua.notion.telegrambot.service.CabinetServiceImpl;
 import ua.notion.telegrambot.service.FloorService;
@@ -26,12 +27,14 @@ import ua.notion.telegrambot.service.UserSessionServiceImpl;
 public class TelegramMessageHandler {
   private static final Logger logger = LoggerFactory.getLogger(TelegramMessageHandler.class);
   private final BotController botController;
+  private final BotService botService;
   private final CabinetService cabinetService = new CabinetServiceImpl();
   private final FloorService floorService = new FloorServiceImpl();
   private final UserSessionService userSessionService = new UserSessionServiceImpl();
 
-  public TelegramMessageHandler(BotController botController) {
+  public TelegramMessageHandler(BotController botController, BotService botService) {
     this.botController = botController;
+    this.botService = botService;
   }
 
   @MessageHandler(texts = { "1 floor", "2 floor", "3 floor", "4 floor", "5 floor" })
@@ -71,7 +74,8 @@ public class TelegramMessageHandler {
 
     var keyboard = createCabinetsKeyboard(cabinets);
 
-    context.sendMessage(chatId, responseText)
+    context.sendPhoto(chatId, floor.getMapImageUrl())
+        .caption(responseText)
         .parseMode(ParseMode.HTML)
         .replyMarkup(keyboard)
         .exec();
@@ -87,45 +91,42 @@ public class TelegramMessageHandler {
     return keyboard;
   }
 
-  // Відповідь на номер кабінету який користувач всписав в чат ( не вибрав )
   @MessageHandler(type = MessageType.TEXT)
   void handleCabinetNumber(BotContext context, Message message) {
     String text = message.getText().trim();
+    Long chatId = message.getChat().getId();
+    Long userId = message.getFrom().getId();
 
-    logger.info("Received cabinet number from user {}: {}", message.getFrom().getId(), text);
+    logger.info("Received cabinet number from user {}: {}", userId, text);
 
-    // Шукаємо кабінет
     Cabinet cabinet = cabinetService.getByNumber(text);
 
     if (cabinet == null) {
-      context.sendMessage(message.getChat().getId(),
-          "❌ Кабінет " + text + " не знайдено в базі даних.\n\n" +
-              "Перевірте номер або оберіть поверх з меню.")
-          .exec();
+      context.sendMessage(chatId, "Cabinet not find.").exec();
       return;
     }
 
-    // замість цьої хрені давати користувачу запитання де він знаходиться (або
-    // лишити якщо нравиться на твою думку) але краще якщо зберігаєш то перероби
-    // логічно
     StringBuilder response = new StringBuilder();
     response.append("🏢 <b>").append(cabinet.getName()).append("</b>\n");
-    response.append("📍 Номер: ").append(cabinet.getNumber()).append("\n");
-    response.append("📊 Поверх: ").append(cabinet.getFloor().getNumber()).append("\n\n");
+    response.append("📍 Number: ").append(cabinet.getNumber()).append("\n");
+    response.append("📊 Floor: ").append(cabinet.getFloor().getNumber()).append("\n\n");
     response.append("ℹ️ ").append(cabinet.getDescription()).append("\n\n");
 
     if (cabinet.getFeatures() != null && !cabinet.getFeatures().isEmpty()) {
-      response.append("✨ Особливості:\n");
+      response.append("✨ Features:\n");
       for (String feature : cabinet.getFeatures()) {
         response.append("  • ").append(feature).append("\n");
       }
     }
 
-    // TODO: Тут додати кнопки для побудови маршруту
-    // Наприклад: "Побудувати маршрут", "Назад до списку"
-
-    context.sendMessage(message.getChat().getId(), response.toString())
+    context.sendMessage(chatId, response.toString())
         .parseMode(ParseMode.HTML)
         .exec();
+
+    UserSession session = userSessionService.getOrCreateSession(userId);
+    session.setCurrentCabinet(cabinet.getNumber());
+    userSessionService.updateSession(session);
+
+    botService.sendStartFloorSelection(context, chatId);
   }
 }
