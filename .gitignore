@@ -13,6 +13,7 @@ target/
 
 # IDE specific files
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
@@ -45,3 +46,6 @@ temp/
 ehthumbs.db
 Icon?
 Thumbs.db
+
+# db
+src/main/resources/META-INF/

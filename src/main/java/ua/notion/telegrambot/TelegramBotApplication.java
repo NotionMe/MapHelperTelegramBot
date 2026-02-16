@@ -1,132 +1,69 @@
 package ua.notion.telegrambot;
 
-import io.github.natanimn.telebof.BotClient;
-import io.github.natanimn.telebof.BotContext;
-import io.github.natanimn.telebof.annotations.MessageHandler;
-import io.github.natanimn.telebof.types.updates.Message;
-import ua.notion.telegrambot.config.AppConfig;
-import ua.notion.telegrambot.controller.BotController;
-import io.github.natanimn.telebof.enums.MessageType;
+import java.util.concurrent.CompletableFuture;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Main application class for the Telegram Bot
- * This class initializes the bot and handles incoming messages
- */
+import io.github.cdimascio.dotenv.Dotenv;
+import io.github.natanimn.telebof.BotClient;
+import ua.notion.telegrambot.config.AppConfig;
+import ua.notion.telegrambot.handler.CommandHandler;
+import ua.notion.telegrambot.handler.TelegramCallbackHandler;
+import ua.notion.telegrambot.handler.TelegramMessageHandler;
+import ua.notion.telegrambot.service.BotService;
+import ua.notion.telegrambot.service.RouteService;
+import ua.notion.telegrambot.service.RouteServiceImpl;
+import ua.notion.telegrambot.service.UserSessionService;
+import ua.notion.telegrambot.service.UserSessionServiceImpl;
+import ua.notion.telegrambot.util.HibernateUtil;
+
 public class TelegramBotApplication {
     private static final Logger logger = LoggerFactory.getLogger(TelegramBotApplication.class);
+    private static final UserSessionService userSession = new UserSessionServiceImpl();
+    private static final RouteService routeService = new RouteServiceImpl();
 
-    private final BotController botController;
-
-    public TelegramBotApplication() {
-        // Initialize the application configuration
-        AppConfig config = new AppConfig();
-        this.botController = config.getBotController();
-
-        logger.info("Telegram Bot Application initialized successfully");
-    }
-
-    /**
-     * Main method to start the Telegram bot
-     * 
-     * @param args Command-line arguments (bot token should be provided as
-     *             environment variable)
-     */
     public static void main(String[] args) {
-        // Get bot token from environment variable
-        String botToken = System.getenv("TELEGRAM_BOT_TOKEN");
 
-        if (botToken == null || botToken.isEmpty()) {
-            logger.error("TELEGRAM_BOT_TOKEN environment variable is not set!");
-            System.err.println("Please set the TELEGRAM_BOT_TOKEN environment variable.");
-            System.exit(1);
-        }
+        long startTime = System.currentTimeMillis();
+        HibernateUtil.getSessionFactory();
+        long infoTime = System.currentTimeMillis() - startTime;
+        logger.info("Hibernate SessionFactory initialized in {} ms", infoTime);
 
+        String botToken = getBotToken();
         logger.info("Starting Telegram Bot...");
 
         try {
-            TelegramBotApplication app = new TelegramBotApplication();
-
-            // Create and configure the bot using Telebof
             BotClient bot = new BotClient(botToken);
+            AppConfig config = new AppConfig();
+            BotService botService = new BotService();
 
-            // Register the message handler
-            bot.addHandler(app);
+            bot.addHandler(new CommandHandler(botService));
+            bot.addHandler(new TelegramMessageHandler(config.getBotController(), botService));
+            bot.addHandler(new TelegramCallbackHandler(botService, userSession, routeService));
 
-            // Start polling for updates
             bot.startPolling();
-
             logger.info("Telegram Bot is running and listening for messages...");
 
         } catch (Exception e) {
             logger.error("Error starting the Telegram Bot: ", e);
-            System.err.println("Failed to start the bot: " + e.getMessage());
             System.exit(1);
         }
     }
 
-    /**
-     * Handle incoming messages from Telegram
-     * 
-     * @param context The bot context for sending responses
-     * @param message The incoming message
-     */
-    @MessageHandler(type = MessageType.TEXT)
-    public void handleMessage(BotContext context, Message message) {
-        // Extract user information
-        Long userId = message.getFrom().getId();
-        String firstName = message.getFrom().getFirstName();
-        String lastName = message.getFrom().getLastName();
-        String username = message.getFrom().getUsername();
-        String languageCode = message.getFrom().getLanguageCode();
-        String messageText = message.getText();
+    private static String getBotToken() {
+        String botToken = System.getenv("TELEGRAM_BOT_TOKEN");
 
-        logger.info("Received message from user {}: {}", userId, messageText);
+        if (botToken == null || botToken.isEmpty()) {
+            Dotenv dotenv = Dotenv.configure().load();
+            botToken = dotenv.get("TELEGRAM_BOT_TOKEN");
+        }
 
-        // Handle the message using the controller
-        var response = botController.handleMessage(
-                userId,
-                firstName,
-                lastName,
-                username,
-                languageCode,
-                messageText);
+        if (botToken == null || botToken.isEmpty()) {
+            logger.error("TELEGRAM_BOT_TOKEN is not set!");
+            System.exit(1);
+        }
 
-        // Send the response back to the user
-        context.sendMessage(message.getChat().getId(), response.getText()).exec();
-
-        logger.info("Response sent to user {}: {}", userId, response.getText());
-    }
-
-    /**
-     * Handle /start command
-     * 
-     * @param context The bot context for sending responses
-     * @param message The incoming message
-     */
-    @MessageHandler(commands = "start")
-    public void handleStartCommand(BotContext context, Message message) {
-        // Extract user information
-        Long userId = message.getFrom().getId();
-        String firstName = message.getFrom().getFirstName();
-        String lastName = message.getFrom().getLastName();
-        String username = message.getFrom().getUsername();
-        String languageCode = message.getFrom().getLanguageCode();
-
-        logger.info("Received /start command from user {}", userId);
-
-        // Handle the new user using the controller
-        var response = botController.handleNewUser(
-                userId,
-                firstName,
-                lastName,
-                username,
-                languageCode);
-
-        // Send the response back to the user
-        context.sendMessage(message.getChat().getId(), response.getText()).exec();
-
-        logger.info("Welcome message sent to user {}: {}", userId, response.getText());
+        return botToken;
     }
 }
